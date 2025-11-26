@@ -26,7 +26,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [miniPlayerVisible, setMiniPlayerVisible] = useState(false);
   
   const soundRef = useRef<Audio.Sound | null>(null);
-  // This Ref tracks the "ID" of the current load request to prevent race conditions
   const loadingIdRef = useRef(0);
 
   useEffect(() => {
@@ -60,52 +59,40 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const playSongInternal = async (song: Song) => {
-    // Generate a new ID for this specific play attempt
     const myLoadId = loadingIdRef.current + 1;
     loadingIdRef.current = myLoadId;
 
     try {
-      // 1. Safely unload the previous song
       try {
         if (soundRef.current) {
           await soundRef.current.unloadAsync();
         }
       } catch (e) {
-        // Ignore unload errors (common on Android if already unloading)
         console.log("Unload error ignored"); 
       }
 
-      // 2. Check if the user clicked another song while we were unloading
       if (loadingIdRef.current !== myLoadId) return;
 
-      // 3. Update UI
       setCurrentSong(song);
       setMiniPlayerVisible(true); 
 
-      // 4. Load the new song
       const { sound } = await Audio.Sound.createAsync(
         { uri: song.url },
         { shouldPlay: true },
         onPlaybackStatusUpdate
       );
 
-      // 5. Final check: Did the user click ANOTHER song while this one was loading?
       if (loadingIdRef.current !== myLoadId) {
-         // If yes, unload this sound immediately and stop.
          await sound.unloadAsync(); 
          return;
       }
 
-      // 6. Success!
       soundRef.current = sound;
       setIsPlaying(true);
 
     } catch (error) {
-      // Only show error if THIS was the latest request
       if (loadingIdRef.current === myLoadId) {
         console.error("Error playing sound:", error);
-        // Don't alert for small network hiccups if it plays anyway
-        // Alert.alert("Playback Error", "Could not play this song."); 
         setIsPlaying(false);
       }
     }
@@ -115,10 +102,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (newQueue) {
       setQueue(newQueue);
     }
-    if (currentSong?.id === song.id) {
+    
+    // FIX: Only toggle if same song AND player is visible.
+    // If player is closed, fall through to playSongInternal to reload/re-open it.
+    if (currentSong?.id === song.id && miniPlayerVisible) {
       togglePlay();
       return;
     }
+    
     playSongInternal(song);
   };
 
@@ -164,7 +155,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const closePlayer = async () => {
-    // Hide UI first to feel responsive
     setMiniPlayerVisible(false);
     setIsPlaying(false);
     
