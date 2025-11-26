@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import Slider from '@react-native-community/slider';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePlayer } from '../context/PlayerContext';
 import { Icon } from './Icons';
 import { api } from '../services/mockBackend';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export const FullPlayer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { currentSong, isPlaying, togglePlay, nextSong, prevSong, progress, duration, seek } = usePlayer();
   const [isLiked, setIsLiked] = useState(currentSong?.likedByUser || false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragValue, setDragValue] = useState(0);
 
   useEffect(() => {
     setIsLiked(currentSong?.likedByUser || false);
@@ -28,103 +32,109 @@ export const FullPlayer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const skipForward = () => {
+    seek(progress + 5);
+  };
+
+  const skipBackward = () => {
+    seek(progress - 5);
+  };
+
   if (!currentSong) return null;
 
-  const progressPercent = duration ? (progress / duration) * 100 : 0;
-
+  // REMOVED THE <MODAL> WRAPPER HERE
   return (
-    <Modal animationType="slide" transparent={false} visible={true} onRequestClose={onClose}>
-      <View style={styles.container}>
-        {/* Background Blur (Simulated with Image and opacity) */}
-        <View style={styles.backgroundContainer}>
-          <Image source={{ uri: currentSong.coverUrl }} style={styles.backgroundImage} blurRadius={50} />
-          <View style={styles.backgroundOverlay} />
+    <View style={styles.container}>
+      <View style={styles.backgroundContainer}>
+        <Image source={{ uri: currentSong.coverUrl }} style={styles.backgroundImage} blurRadius={50} />
+        <View style={styles.backgroundOverlay} />
+      </View>
+
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+            <Icon name="chevron-down" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>NOW PLAYING</Text>
+          <TouchableOpacity style={styles.headerButton}>
+            <Icon name="more-horizontal" size={24} color="white" />
+          </TouchableOpacity>
         </View>
 
-        <SafeAreaView style={styles.safeArea}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-              <Icon name="chevron-down" size={24} color="white" />
+        <View style={styles.artContainer}>
+          <View style={[styles.artWrapper, isPlaying ? styles.artWrapperPlaying : styles.artWrapperPaused]}>
+            <Image source={{ uri: currentSong.coverUrl }} style={styles.art} />
+          </View>
+        </View>
+
+        <View style={styles.controlsSection}>
+          <View style={styles.trackInfo}>
+            <View style={styles.textInfo}>
+              <Text style={styles.title} numberOfLines={1}>{currentSong.title}</Text>
+              <Text style={styles.artist} numberOfLines={1}>{currentSong.artist}</Text>
+            </View>
+            <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
+              <Icon name="heart" size={28} color={isLiked ? "#22c55e" : "white"} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>NOW PLAYING</Text>
-            <TouchableOpacity style={styles.headerButton}>
-              <Icon name="more-horizontal" size={24} color="white" />
+          </View>
+
+          <View style={styles.scrubberContainer}>
+            <Slider
+              style={{width: '100%', height: 40}}
+              minimumValue={0}
+              maximumValue={duration}
+              value={isDragging ? dragValue : progress}
+              minimumTrackTintColor="#22c55e"
+              maximumTrackTintColor="#52525b"
+              thumbTintColor="#22c55e"
+              onSlidingStart={() => setIsDragging(true)}
+              onValueChange={(val) => setDragValue(val)}
+              onSlidingComplete={(val) => {
+                seek(val);
+                setIsDragging(false);
+              }}
+            />
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeText}>
+                {formatTime(isDragging ? dragValue : progress)}
+              </Text>
+              <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity onPress={skipBackward} style={styles.secondaryControl}>
+              <Icon name="rotate-ccw" size={24} color="white" />
+              <Text style={styles.skipText}>-5</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={prevSong} style={styles.mainControl}>
+              <Icon name="skip-back" size={32} color="white" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={togglePlay} style={styles.playButton} activeOpacity={0.8}>
+              <Icon name={isPlaying ? "pause" : "play"} size={36} color="black" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={nextSong} style={styles.mainControl}>
+              <Icon name="skip-forward" size={32} color="white" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={skipForward} style={styles.secondaryControl}>
+              <Icon name="rotate-cw" size={24} color="white" />
+              <Text style={styles.skipText}>+5</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Art */}
-          <View style={styles.artContainer}>
-            <View style={[styles.artWrapper, isPlaying ? styles.artWrapperPlaying : styles.artWrapperPaused]}>
-              <Image source={{ uri: currentSong.coverUrl }} style={styles.art} />
-            </View>
-          </View>
-
-          {/* Controls Section */}
-          <View style={styles.controlsSection}>
-            <View style={styles.trackInfo}>
-              <View style={styles.textInfo}>
-                <Text style={styles.title} numberOfLines={1}>{currentSong.title}</Text>
-                <Text style={styles.artist} numberOfLines={1}>{currentSong.artist}</Text>
-              </View>
-              <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-                <Icon 
-                  name="heart" 
-                  size={28} 
-                  color={isLiked ? "#22c55e" : "white"} 
-                  // fill={isLiked} 
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrubber (Simplified View-based slider) */}
-            <View style={styles.scrubberContainer}>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-              </View>
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>{formatTime(progress)}</Text>
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
-              </View>
-            </View>
-
-            {/* Buttons */}
-            <View style={styles.buttonsContainer}>
-              <TouchableOpacity style={styles.secondaryControl}>
-                <Icon name="shuffle" size={24} color="#a1a1aa" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity onPress={prevSong} style={styles.mainControl}>
-                <Icon name="skip-back" size={32} color="white" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={togglePlay}
-                style={styles.playButton}
-                activeOpacity={0.8}
-              >
-                <Icon name={isPlaying ? "pause" : "play"} size={36} color="black" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity onPress={nextSong} style={styles.mainControl}>
-                <Icon name="skip-forward" size={32} color="white" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.secondaryControl}>
-                <Icon name="repeat" size={24} color="#a1a1aa" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
-    </Modal>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09090b', // zinc-950
+    backgroundColor: '#09090b',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -136,7 +146,7 @@ const styles = StyleSheet.create({
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(9, 9, 11, 0.8)', // zinc-950 with opacity
+    backgroundColor: 'rgba(9, 9, 11, 0.8)',
   },
   safeArea: {
     flex: 1,
@@ -155,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   headerTitle: {
-    color: '#22c55e', // neon-400
+    color: '#22c55e',
     fontSize: 12,
     fontWeight: 'bold',
     letterSpacing: 2,
@@ -191,14 +201,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   controlsSection: {
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     paddingBottom: 48,
   },
   trackInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   textInfo: {
     flex: 1,
@@ -211,7 +221,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   artist: {
-    color: '#a1a1aa', // zinc-400
+    color: '#a1a1aa',
     fontSize: 18,
   },
   likeButton: {
@@ -220,23 +230,14 @@ const styles = StyleSheet.create({
   scrubberContainer: {
     marginBottom: 32,
   },
-  progressBarBg: {
-    height: 4,
-    backgroundColor: '#27272a', // zinc-800
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#22c55e', // neon-500
-  },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: -8, 
+    paddingHorizontal: 4,
   },
   timeText: {
-    color: '#71717a', // zinc-500
+    color: '#71717a',
     fontSize: 12,
     fontFamily: 'monospace',
   },
@@ -247,6 +248,14 @@ const styles = StyleSheet.create({
   },
   secondaryControl: {
     padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipText: {
+    color: 'white',
+    fontSize: 10,
+    marginTop: 2,
+    fontWeight: 'bold'
   },
   mainControl: {
     padding: 12,
@@ -255,7 +264,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#22c55e', // neon-500
+    backgroundColor: '#22c55e',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: "#22c55e",

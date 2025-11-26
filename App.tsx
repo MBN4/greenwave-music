@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-// import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'; // <--- IMPORT THIS
 import { PlayerProvider } from './context/PlayerContext';
 import { ToastProvider } from './context/ToastContext';
 import { HomeScreen } from './screens/HomeScreen';
@@ -39,7 +38,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
       <View style={[styles.glow, styles.glowTop]} />
@@ -59,11 +58,14 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <PlayerProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </PlayerProvider>
+    // WRAP EVERYTHING IN SAFE AREA PROVIDER
+    <SafeAreaProvider>
+      <PlayerProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </PlayerProvider>
+    </SafeAreaProvider>
   );
 };
 
