@@ -27,6 +27,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const soundRef = useRef<Audio.Sound | null>(null);
   const loadingIdRef = useRef(0);
+  const currentSongRef = useRef<Song | null>(null);
+  const queueRef = useRef<Song[]>([]);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+  }, [currentSong]);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   useEffect(() => {
     Audio.setAudioModeAsync({
@@ -54,7 +65,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsPlaying(status.isPlaying);
 
     if (status.didJustFinish && !status.isLooping) {
-        nextSong();
+      // Use refs to get current values, avoiding stale closure
+      const song = currentSongRef.current;
+      const currentQueue = queueRef.current;
+      
+      if (song && currentQueue.length > 0) {
+        const currentIndex = currentQueue.findIndex(s => s.id === song.id);
+        const nextIndex = (currentIndex + 1) % currentQueue.length;
+        playSongInternal(currentQueue[nextIndex]);
+      }
     }
   };
 

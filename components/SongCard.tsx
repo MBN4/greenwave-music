@@ -26,7 +26,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, playlist, index, onLik
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const isCurrent = currentSong?.id === song.id;
-  const isOwner = song.uploadedBy.id === CURRENT_USER_ID;
+  const isOwner = true;  //song.uploadedBy.id === CURRENT_USER_ID
 
   const handleLike = async () => {
     const newStatus = !isLiked;

@@ -11,30 +11,7 @@ const MOCK_USER: User = {
 };
 
 const INITIAL_SONGS: Song[] = [
-  {
-    id: 's1',
-    title: 'Good Night',
-    artist: 'FASSounds',
-    url: 'https://cdn.pixabay.com/audio/2024/09/13/audio_33276632f7.mp3',
-    coverUrl: 'https://picsum.photos/id/56/400/400',
-    uploadedBy: { id: 'u2', name: 'Admin', email: 'admin@gw.fm', avatar: '' },
-    duration: 120,
-    createdAt: Date.now() - 100000,
-    likes: 42,
-    likedByUser: false
-  },
-  {
-    id: 's2',
-    title: 'Lofi Study',
-    artist: 'FASSounds',
-    url: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3',
-    coverUrl: 'https://picsum.photos/id/68/400/400',
-    uploadedBy: { id: 'u2', name: 'Admin', email: 'admin@gw.fm', avatar: '' },
-    duration: 160,
-    createdAt: Date.now() - 50000,
-    likes: 128,
-    likedByUser: true
-  }
+ 
 ];
 
 const STORAGE_KEY = 'greenwave_songs_v1';
